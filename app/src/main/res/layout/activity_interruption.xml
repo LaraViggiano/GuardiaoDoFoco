@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp"
+    tools:context=".InterruptionActivity">
+
+    <TextView
+        android:id="@+id/questionTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="O que te tirou do foco?"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.1"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <RadioGroup
+        android:id="@+id/reasonRadioGroup"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/questionTextView">
+
+        <RadioButton
+            android:id="@+id/radioUrgent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Notificação urgente" />
+
+        <RadioButton
+            android:id="@+id/radioTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Queria ver quanto tempo falta" />
+
+        <RadioButton
+            android:id="@+id/radioCuriosity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Curiosidade / Hábito" />
+
+        <RadioButton
+            android:id="@+id/radioBoredom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tédio" />
+
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/backToFocusButton"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:text="Voltar ao Foco"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toTopOf="@id/exitFocusButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/exitFocusButton"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sair do Foco"
+        android:textColor="@android:color/holo_red_dark"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
