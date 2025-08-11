@@ -60,7 +60,7 @@
         android:gravity="center"
         android:text="Ao iniciar, vire o celular com a tela para baixo."
         android:textAlignment="center"
-        app:drawableTopCompat="@android:drawable/ic_lock_screen_on"
+        app:drawableTopCompat="@drawable/ic_screen_down"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/startButton" />
