@@ -3,6 +3,7 @@ package com.example.guardiaodofoco
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -11,23 +12,27 @@ import android.widget.NumberPicker
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var minutesPicker: NumberPicker
     private lateinit var startButton: Button
     private lateinit var notificationManager: NotificationManager
+
+    // Launcher para a permissão de "Não Perturbe"
     private val notificationPolicyLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // Após o usuário voltar da tela de permissões, verificamos novamente
-        if (notificationManager.isNotificationPolicyAccessGranted) {
-            startFocusService()
-        } else {
-            Toast.makeText(this, "Permissão necessária para controlar o modo foco.", Toast.LENGTH_SHORT).show()
-        }
+        // Após voltar, verifica de novo e tenta iniciar a próxima verificação
+        handleStartFocusClick()
+    }
+
+    // Launcher para a permissão de "Desenhar sobre outros"
+    private val overlayPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // Após voltar, verifica de novo e tenta iniciar o serviço
+        handleStartFocusClick()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,28 +44,34 @@ class MainActivity : AppCompatActivity() {
         minutesPicker = findViewById(R.id.minutesPicker)
         startButton = findViewById(R.id.startButton)
 
-        // Configura o NumberPicker
         setupNumberPicker()
 
-        // Configura o clique do botão
         startButton.setOnClickListener {
             handleStartFocusClick()
         }
     }
 
     private fun setupNumberPicker() {
-        minutesPicker.minValue = 5 // Mínimo de 5 minutos
-        minutesPicker.maxValue = 120 // Máximo de 2 horas
-        minutesPicker.value = 30 // Valor padrão
+        minutesPicker.minValue = 5
+        minutesPicker.maxValue = 120
+        minutesPicker.value = 25 // Valor padrão
     }
 
     private fun handleStartFocusClick() {
-        // Verifica se a permissão para o modo "Não Perturbe" foi concedida
-        if (notificationManager.isNotificationPolicyAccessGranted) {
-            startFocusService()
-        } else {
-            // Se não foi, pede ao usuário para concedê-la
-            requestNotificationPolicyAccess()
+        // Cadeia de verificação de permissões
+        when {
+            // 1. Verifica a permissão "Não Perturbe"
+            !notificationManager.isNotificationPolicyAccessGranted -> {
+                requestNotificationPolicyAccess()
+            }
+            // 2. Verifica a permissão "Desenhar sobre outros"
+            !Settings.canDrawOverlays(this) -> {
+                requestOverlayPermission()
+            }
+            // 3. Se todas as permissões estiverem OK, inicia o serviço
+            else -> {
+                startFocusService()
+            }
         }
     }
 
@@ -70,18 +81,31 @@ class MainActivity : AppCompatActivity() {
         notificationPolicyLauncher.launch(intent)
     }
 
+    private fun requestOverlayPermission() {
+        Toast.makeText(this, "Agora, ative a permissão para sobrepor outros apps.", Toast.LENGTH_LONG).show()
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        overlayPermissionLauncher.launch(intent)
+    }
+
     private fun startFocusService() {
         val focusMinutes = minutesPicker.value.toLong()
+
+        // Envia o comando correto para o serviço
         val serviceIntent = Intent(this, FocusService::class.java).apply {
+            action = FocusService.ACTION_START_FOCUS
             putExtra("FOCUS_MINUTES", focusMinutes)
         }
-        // Inicia o serviço em primeiro plano
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
         } else {
             startService(serviceIntent)
         }
-        // Informa ao usuário que o modo foco começou
+
         Toast.makeText(this, "Modo Foco iniciado por $focusMinutes minutos.", Toast.LENGTH_SHORT).show()
+        finish() // Fecha a activity para o utilizador não ficar nela
     }
 }

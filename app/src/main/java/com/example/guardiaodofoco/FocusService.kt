@@ -1,5 +1,4 @@
-package com.example.guardiaodofoco
-
+package com.example.guardiaodofoco // Substitua pelo seu pacote
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -9,9 +8,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.os.Build
 import android.os.CountDownTimer
 import android.os.IBinder
+import android.view.View
+import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 
 class FocusService : Service() {
@@ -19,12 +22,14 @@ class FocusService : Service() {
     private lateinit var notificationManager: NotificationManager
     private var countDownTimer: CountDownTimer? = null
 
-    // O BroadcastReceiver que "ouve" o desbloqueio da tela
+    // --- Lógica da Camada Cinzenta (Overlay) ---
+    private lateinit var windowManager: WindowManager
+    private var overlayView: View? = null
+
+    // O BroadcastReceiver que "ouve" o desbloqueio do ecrã
     private val screenUnlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            // A ação ACTION_USER_PRESENT é enviada quando o usuário desbloqueia o celular
             if (intent?.action == Intent.ACTION_USER_PRESENT) {
-                // Abre a tela de interrupção
                 val interruptionIntent = Intent(context, InterruptionActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
@@ -36,28 +41,30 @@ class FocusService : Service() {
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        // Registra o nosso "ouvinte" de desbloqueio
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         registerReceiver(screenUnlockReceiver, IntentFilter(Intent.ACTION_USER_PRESENT))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val minutes = intent?.getLongExtra("FOCUS_MINUTES", 1) ?: 1
-        val timeInMillis = minutes * 60 * 1000
-
-        startFocusSession(timeInMillis)
-
-        // START_STICKY garante que o serviço tente se recriar se for encerrado
+        // Agora o serviço pode receber diferentes ações
+        when (intent?.action) {
+            ACTION_START_FOCUS -> {
+                val minutes = intent.getLongExtra("FOCUS_MINUTES", 1)
+                startFocusSession(minutes * 60 * 1000)
+            }
+            ACTION_SHOW_OVERLAY -> showOverlay()
+            ACTION_HIDE_OVERLAY -> hideOverlay()
+            ACTION_STOP_FOCUS -> stopFocusSession()
+        }
         return START_STICKY
     }
 
     private fun startFocusSession(timeInMillis: Long) {
-        // Ativa o modo "Não Perturbe"
         setDndMode(true)
+        hideOverlay() // Garante que a camada não está visível no início
 
-        // Inicia o timer
         countDownTimer = object : CountDownTimer(timeInMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                // Atualiza a notificação com o tempo restante
                 val minutesLeft = (millisUntilFinished / 1000) / 60
                 val secondsLeft = (millisUntilFinished / 1000) % 60
                 val timeLeftFormatted = String.format("%02d:%02d", minutesLeft, secondsLeft)
@@ -65,18 +72,15 @@ class FocusService : Service() {
             }
 
             override fun onFinish() {
-                // O tempo acabou, encerra o modo foco
                 stopFocusSession()
             }
         }.start()
     }
 
     private fun stopFocusSession() {
-        // 1. Desativa o modo "Não Perturbe"
         setDndMode(false)
-        // 2. Para o timer
+        hideOverlay()
         countDownTimer?.cancel()
-        // 3. Encerra o serviço
         stopForeground(true)
         stopSelf()
     }
@@ -91,6 +95,38 @@ class FocusService : Service() {
         }
     }
 
+    // --- NOVOS MÉTODOS PARA A CAMADA CINZENTA ---
+
+    private fun showOverlay() {
+        if (overlayView == null) {
+            overlayView = View(this)
+            // Cor cinzenta com 70% de transparência
+            overlayView?.setBackgroundColor(Color.parseColor("#B3808080"))
+
+            val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT
+            )
+            windowManager.addView(overlayView, params)
+        }
+    }
+
+    private fun hideOverlay() {
+        overlayView?.let {
+            windowManager.removeView(it)
+            overlayView = null
+        }
+    }
+
     private fun createNotification(contentText: String): android.app.Notification {
         val channelId = "focus_service_channel"
         val channelName = "Guardião do Foco"
@@ -100,7 +136,6 @@ class FocusService : Service() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Intent para reabrir o app se o usuário tocar na notificação
         val pendingIntent = Intent(this, MainActivity::class.java).let { notificationIntent ->
             PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
         }
@@ -108,24 +143,26 @@ class FocusService : Service() {
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Modo Foco Ativado")
             .setContentText("Tempo restante: $contentText")
-            .setSmallIcon(android.R.drawable.ic_lock_silent_mode) // Ícone padrão de modo silencioso
+            .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setContentIntent(pendingIntent)
-            .setOngoing(true) // Torna a notificação não-removível
+            .setOngoing(true)
             .build()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Garante que o "ouvinte" seja desregistrado para evitar vazamento de memória
         unregisterReceiver(screenUnlockReceiver)
         stopFocusSession()
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null // Não precisamos de binding neste caso
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
         const val NOTIFICATION_ID = 1
+        // Ações para controlar o serviço
+        const val ACTION_START_FOCUS = "ACTION_START_FOCUS"
+        const val ACTION_STOP_FOCUS = "ACTION_STOP_FOCUS"
+        const val ACTION_SHOW_OVERLAY = "ACTION_SHOW_OVERLAY"
+        const val ACTION_HIDE_OVERLAY = "ACTION_HIDE_OVERLAY"
     }
 }
