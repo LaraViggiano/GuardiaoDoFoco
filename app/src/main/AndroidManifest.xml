@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ... (suas permissões existentes) ... -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -30,7 +29,6 @@
             </intent-filter>
         </activity>
 
-        <!-- ATRIBUTOS ADICIONADOS ABAIXO -->
         <activity
             android:name=".InterruptionActivity"
             android:excludeFromRecents="true"
