@@ -1,4 +1,4 @@
-package com.example.guardiaodofoco // Substitua pelo seu pacote
+package com.example.guardiaodofoco
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -21,12 +21,9 @@ class FocusService : Service() {
 
     private lateinit var notificationManager: NotificationManager
     private var countDownTimer: CountDownTimer? = null
-
-    // --- Lógica da Camada Cinzenta (Overlay) ---
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
 
-    // O BroadcastReceiver que "ouve" o desbloqueio do ecrã
     private val screenUnlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_USER_PRESENT) {
@@ -46,22 +43,22 @@ class FocusService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Garante que o serviço pode receber diferentes ações
         when (intent?.action) {
             ACTION_START_FOCUS -> {
                 val minutes = intent.getLongExtra("FOCUS_MINUTES", 1)
                 startFocusSession(minutes * 60 * 1000)
             }
-            ACTION_SHOW_OVERLAY -> showOverlay()
-            ACTION_HIDE_OVERLAY -> hideOverlay()
-            ACTION_STOP_FOCUS -> stopFocusSession()
+            ACTION_INTERRUPT_FOCUS -> {
+                val showOverlay = intent.getBooleanExtra("SHOW_OVERLAY", false)
+                interruptFocusSession(showOverlay)
+            }
         }
         return START_STICKY
     }
 
     private fun startFocusSession(timeInMillis: Long) {
         setDndMode(true)
-        hideOverlay() // Garante que a camada não está visível no início
+        hideOverlay() // Garante que qualquer camada anterior seja removida
 
         countDownTimer = object : CountDownTimer(timeInMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
@@ -72,12 +69,14 @@ class FocusService : Service() {
             }
 
             override fun onFinish() {
-                stopFocusSession()
+                // O tempo acabou, paragem limpa
+                stopFocusSessionCleanly()
             }
         }.start()
     }
 
-    private fun stopFocusSession() {
+    // Chamado quando o tempo acaba naturalmente
+    private fun stopFocusSessionCleanly() {
         setDndMode(false)
         hideOverlay()
         countDownTimer?.cancel()
@@ -85,23 +84,26 @@ class FocusService : Service() {
         stopSelf()
     }
 
-    private fun setDndMode(enabled: Boolean) {
-        if (notificationManager.isNotificationPolicyAccessGranted) {
-            if (enabled) {
-                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-            } else {
-                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-            }
+    // Chamado quando o utilizador interrompe
+    private fun interruptFocusSession(showOverlay: Boolean) {
+        setDndMode(false)
+        countDownTimer?.cancel()
+        stopForeground(true) // Remove a notificação do temporizador
+
+        if (showOverlay) {
+            showOverlay()
+            // O serviço continua a correr em segundo plano para manter a camada
+        } else {
+            // Se não for preciso camada, o serviço pode parar completamente
+            hideOverlay()
+            stopSelf()
         }
     }
-
-    // MÉTODOS PARA A CAMADA CINZENTA
 
     private fun showOverlay() {
         if (overlayView == null) {
             overlayView = View(this)
-            // Cor cinzenta com 70% de transparência
-            overlayView?.setBackgroundColor(Color.parseColor("#B3808080"))
+            overlayView?.setBackgroundColor(Color.parseColor("#B3808080")) // Cinzento com 70% de opacidade
 
             val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -124,6 +126,16 @@ class FocusService : Service() {
         overlayView?.let {
             windowManager.removeView(it)
             overlayView = null
+        }
+    }
+
+    private fun setDndMode(enabled: Boolean) {
+        if (notificationManager.isNotificationPolicyAccessGranted) {
+            if (enabled) {
+                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+            } else {
+                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+            }
         }
     }
 
@@ -152,7 +164,9 @@ class FocusService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(screenUnlockReceiver)
-        stopFocusSession()
+        // Garante que tudo é limpo quando o serviço é destruído
+        countDownTimer?.cancel()
+        hideOverlay()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -160,8 +174,6 @@ class FocusService : Service() {
     companion object {
         const val NOTIFICATION_ID = 1
         const val ACTION_START_FOCUS = "ACTION_START_FOCUS"
-        const val ACTION_STOP_FOCUS = "ACTION_STOP_FOCUS"
-        const val ACTION_SHOW_OVERLAY = "ACTION_SHOW_OVERLAY"
-        const val ACTION_HIDE_OVERLAY = "ACTION_HIDE_OVERLAY"
+        const val ACTION_INTERRUPT_FOCUS = "ACTION_INTERRUPT_FOCUS"
     }
 }

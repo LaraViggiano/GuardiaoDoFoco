@@ -19,7 +19,7 @@ class InterruptionActivity : AppCompatActivity() {
     private lateinit var exitFocusButton: Button
 
     private lateinit var reasonButtons: List<Button>
-    private var reasonSelected = false
+    private var selectedReasonButton: Button? = null
 
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
@@ -35,11 +35,9 @@ class InterruptionActivity : AppCompatActivity() {
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponentName = ComponentName(this, FocusDeviceAdminReceiver::class.java)
 
-        // Inicializa os componentes
         backToFocusButton = findViewById(R.id.backToFocusButton)
         exitFocusButton = findViewById(R.id.exitFocusButton)
 
-        // Adiciona os botões à lista
         reasonButtons = listOf(
             findViewById(R.id.reasonUrgent),
             findViewById(R.id.reasonTime),
@@ -58,29 +56,28 @@ class InterruptionActivity : AppCompatActivity() {
             }, 200)
         }
 
-        // Configura o clique para cada botão de motivo
         reasonButtons.forEach { button ->
             button.setOnClickListener {
-                reasonSelected = true
+                selectedReasonButton = button
                 updateReasonButtonsUI(clickedButton = button)
             }
         }
 
         exitFocusButton.setOnClickListener {
-            if (!reasonSelected) {
+            if (selectedReasonButton == null) {
                 Toast.makeText(this, "Por favor, selecione um motivo.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            val overlayIntent = Intent(this, FocusService::class.java).apply {
-                action = FocusService.ACTION_SHOW_OVERLAY
-            }
-            startService(overlayIntent)
+            // Decide se a camada cinzenta deve ser mostrada
+            val shouldShowOverlay = selectedReasonButton?.id != R.id.reasonUrgent
 
-            val stopIntent = Intent(this, FocusService::class.java).apply {
-                action = FocusService.ACTION_STOP_FOCUS
+            // Cria um único Intent para interromper o foco
+            val intent = Intent(this, FocusService::class.java).apply {
+                action = FocusService.ACTION_INTERRUPT_FOCUS
+                putExtra("SHOW_OVERLAY", shouldShowOverlay)
             }
-            startService(stopIntent)
+            startService(intent)
 
             finish()
 
@@ -92,7 +89,6 @@ class InterruptionActivity : AppCompatActivity() {
         }
     }
 
-    // Atualiza a aparência dos botões de motivo
     private fun updateReasonButtonsUI(clickedButton: Button) {
         reasonButtons.forEach { button ->
             button.isSelected = (button == clickedButton)
