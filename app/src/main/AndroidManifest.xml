@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ... (suas permissões existentes) ... -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -20,6 +21,7 @@
         android:theme="@style/Theme.GuardiaoDoFoco"
         tools:targetApi="31">
 
+        <!-- ... (suas activities) ... -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -35,10 +37,25 @@
             android:launchMode="singleTask"
             android:taskAffinity="" />
 
+        <!-- ... (seu service) ... -->
         <service
             android:name=".FocusService"
             android:foregroundServiceType="specialUse"
             android:exported="false" />
+
+        <!-- RECEPTOR DE ADMINISTRAÇÃO ADICIONADO ABAIXO -->
+        <receiver
+            android:name=".FocusDeviceAdminReceiver"
+            android:description="@string/app_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_policies" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

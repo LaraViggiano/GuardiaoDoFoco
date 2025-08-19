@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin>
+    <uses-policies>
+        <!-- Permite que o app force o bloqueio da tela -->
+        <force-lock />
+    </uses-policies>
+</device-admin>

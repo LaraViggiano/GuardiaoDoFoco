@@ -1,7 +1,12 @@
 package com.example.guardiaodofoco
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 import android.widget.RadioGroup
 import android.widget.Toast
@@ -14,60 +19,69 @@ class InterruptionActivity : AppCompatActivity() {
     private lateinit var exitFocusButton: Button
     private lateinit var reasonRadioGroup: RadioGroup
 
+    // Variáveis para o bloqueio de ecrã
+    private lateinit var devicePolicyManager: DevicePolicyManager
+    private lateinit var adminComponentName: ComponentName
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_interruption)
 
-        // Desativa o botão "Voltar" usando a nova API
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                // Deixar em branco para que o botão "Voltar" não faça nada
-            }
+            override fun handleOnBackPressed() { /* Não faz nada */ }
         })
 
-        // Inicializa os componentes da UI
+        devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        adminComponentName = ComponentName(this, FocusDeviceAdminReceiver::class.java)
+
         backToFocusButton = findViewById(R.id.backToFocusButton)
         exitFocusButton = findViewById(R.id.exitFocusButton)
         reasonRadioGroup = findViewById(R.id.reasonRadioGroup)
 
-        // Configura os cliques dos botões
         setupButtonClickListeners()
     }
 
     private fun setupButtonClickListeners() {
-        // Botão "Voltar ao Foco": simplesmente fecha esta tela.
         backToFocusButton.setOnClickListener {
-            finish()
+            // Primeiro, bloqueia o ecrã
+            lockScreen()
+
+            // DEPOIS, espera um curto período antes de fechar a activity
+            // Isto dá tempo ao sistema para processar o bloqueio.
+            Handler(Looper.getMainLooper()).postDelayed({
+                finish()
+            }, 200) // 200 milissegundos de atraso
         }
 
-        // Botão "Sair do Foco":
         exitFocusButton.setOnClickListener {
             if (reasonRadioGroup.checkedRadioButtonId == -1) {
                 Toast.makeText(this, "Por favor, selecione um motivo.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 1. Envia o comando para o serviço mostrar a camada cinzenta
             val overlayIntent = Intent(this, FocusService::class.java).apply {
                 action = FocusService.ACTION_SHOW_OVERLAY
             }
             startService(overlayIntent)
 
-            // 2. Envia o comando para o serviço parar a contagem e o modo "Não Perturbe"
             val stopIntent = Intent(this, FocusService::class.java).apply {
                 action = FocusService.ACTION_STOP_FOCUS
             }
             startService(stopIntent)
 
-            // 3. Fecha a tela de interrupção
             finish()
 
-            // 4. Leva o utilizador para a tela inicial do telemóvel
             val homeIntent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             startActivity(homeIntent)
+        }
+    }
+
+    private fun lockScreen() {
+        if (devicePolicyManager.isAdminActive(adminComponentName)) {
+            devicePolicyManager.lockNow()
         }
     }
 }
