@@ -20,17 +20,36 @@ import androidx.core.app.NotificationCompat
 class FocusService : Service() {
 
     private lateinit var notificationManager: NotificationManager
-    private var countDownTimer: CountDownTimer? = null
+    private var focusTimer: CountDownTimer? = null
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
 
-    private val screenUnlockReceiver = object : BroadcastReceiver() {
+    private enum class FocusState {
+        IDLE,
+        FOCUSSING,
+        INTERRUPTED
+    }
+    private var currentState = FocusState.IDLE
+
+    private val screenStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == Intent.ACTION_USER_PRESENT) {
-                val interruptionIntent = Intent(context, InterruptionActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            when (intent?.action) {
+                Intent.ACTION_USER_PRESENT -> {
+                    // Se estivermos em modo de foco, mostra a tela de interrupção
+                    if (currentState == FocusState.FOCUSSING) {
+                        launchInterruptionActivity()
+                    }
                 }
-                startActivity(interruptionIntent)
+                // Utilizador bloqueou o ecrã
+                Intent.ACTION_SCREEN_OFF -> {
+                    // Se o utilizador tinha saído do foco (com overlay), ao bloquear o ecrã,
+                    // a penalidade é removida e voltamos ao modo de foco normal.
+                    if (currentState == FocusState.INTERRUPTED) {
+                        hideOverlay()
+                        setDndMode(true) // Reativa o "Não Perturbe"
+                        currentState = FocusState.FOCUSSING
+                    }
+                }
             }
         }
     }
@@ -39,7 +58,12 @@ class FocusService : Service() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        registerReceiver(screenUnlockReceiver, IntentFilter(Intent.ACTION_USER_PRESENT))
+
+        val intentFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        registerReceiver(screenStateReceiver, intentFilter)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -50,60 +74,72 @@ class FocusService : Service() {
             }
             ACTION_INTERRUPT_FOCUS -> {
                 val showOverlay = intent.getBooleanExtra("SHOW_OVERLAY", false)
-                interruptFocusSession(showOverlay)
+                handleInterruption(showOverlay)
             }
         }
         return START_STICKY
     }
 
-    private fun startFocusSession(timeInMillis: Long) {
+    private fun startFocusSession(durationInMillis: Long) {
+        currentState = FocusState.FOCUSSING
         setDndMode(true)
-        hideOverlay() // Garante que qualquer camada anterior seja removida
+        hideOverlay()
 
-        countDownTimer = object : CountDownTimer(timeInMillis, 1000) {
+        // ESTA LINHA GARANTE QUE QUALQUER TIMER ANTERIOR SEJA CANCELADO ANTES DE INICIAR UM NOVO
+        focusTimer?.cancel()
+        focusTimer = object : CountDownTimer(durationInMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                val minutesLeft = (millisUntilFinished / 1000) / 60
-                val secondsLeft = (millisUntilFinished / 1000) % 60
-                val timeLeftFormatted = String.format("%02d:%02d", minutesLeft, secondsLeft)
-                startForeground(NOTIFICATION_ID, createNotification(timeLeftFormatted))
+                updateNotification(millisUntilFinished)
             }
 
             override fun onFinish() {
-                // O tempo acabou, paragem limpa
                 stopFocusSessionCleanly()
             }
         }.start()
     }
 
-    // Chamado quando o tempo acaba naturalmente
+    private fun handleInterruption(shouldShowOverlay: Boolean) {
+        // O utilizador saiu do foco. O timer continua, mas o DND é desativado.
+        setDndMode(false)
+
+        if (shouldShowOverlay) {
+            // Motivo fútil: aplica a penalidade do overlay
+            currentState = FocusState.INTERRUPTED
+            showOverlay()
+        } else {
+            // Motivo urgente: termina a sessão de foco completamente
+            stopFocusSessionCleanly()
+        }
+    }
+
+    // Chamado quando o tempo acaba ou o utilizador sai por motivo urgente
     private fun stopFocusSessionCleanly() {
+        currentState = FocusState.IDLE
         setDndMode(false)
         hideOverlay()
-        countDownTimer?.cancel()
+        focusTimer?.cancel()
         stopForeground(true)
         stopSelf()
     }
 
-    // Chamado quando o utilizador interrompe
-    private fun interruptFocusSession(showOverlay: Boolean) {
-        setDndMode(false)
-        countDownTimer?.cancel()
-        stopForeground(true) // Remove a notificação do temporizador
-
-        if (showOverlay) {
-            showOverlay()
-            // O serviço continua a correr em segundo plano para manter a camada
-        } else {
-            // Se não for preciso camada, o serviço pode parar completamente
-            hideOverlay()
-            stopSelf()
+    private fun launchInterruptionActivity() {
+        val intent = Intent(this, InterruptionActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
+        startActivity(intent)
+    }
+
+    private fun updateNotification(millisUntilFinished: Long) {
+        val minutesLeft = (millisUntilFinished / 1000) / 60
+        val secondsLeft = (millisUntilFinished / 1000) % 60
+        val timeLeftFormatted = String.format("%02d:%02d", minutesLeft, secondsLeft)
+        startForeground(NOTIFICATION_ID, createNotification(timeLeftFormatted))
     }
 
     private fun showOverlay() {
         if (overlayView == null) {
             overlayView = View(this)
-            overlayView?.setBackgroundColor(Color.parseColor("#B3808080")) // Cinzento com 70% de opacidade
+            overlayView?.setBackgroundColor(Color.parseColor("#B3808080"))
 
             val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -124,7 +160,9 @@ class FocusService : Service() {
 
     private fun hideOverlay() {
         overlayView?.let {
-            windowManager.removeView(it)
+            if (it.isAttachedToWindow) {
+                windowManager.removeView(it)
+            }
             overlayView = null
         }
     }
@@ -163,10 +201,8 @@ class FocusService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(screenUnlockReceiver)
-        // Garante que tudo é limpo quando o serviço é destruído
-        countDownTimer?.cancel()
-        hideOverlay()
+        unregisterReceiver(screenStateReceiver)
+        stopFocusSessionCleanly()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
