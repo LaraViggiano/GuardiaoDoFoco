@@ -46,7 +46,7 @@ class FocusService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Agora o serviço pode receber diferentes ações
+        // Garante que o serviço pode receber diferentes ações
         when (intent?.action) {
             ACTION_START_FOCUS -> {
                 val minutes = intent.getLongExtra("FOCUS_MINUTES", 1)
@@ -95,7 +95,7 @@ class FocusService : Service() {
         }
     }
 
-    // --- NOVOS MÉTODOS PARA A CAMADA CINZENTA ---
+    // MÉTODOS PARA A CAMADA CINZENTA
 
     private fun showOverlay() {
         if (overlayView == null) {
@@ -159,7 +159,6 @@ class FocusService : Service() {
 
     companion object {
         const val NOTIFICATION_ID = 1
-        // Ações para controlar o serviço
         const val ACTION_START_FOCUS = "ACTION_START_FOCUS"
         const val ACTION_STOP_FOCUS = "ACTION_STOP_FOCUS"
         const val ACTION_SHOW_OVERLAY = "ACTION_SHOW_OVERLAY"

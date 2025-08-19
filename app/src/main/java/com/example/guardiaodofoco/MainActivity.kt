@@ -17,13 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var hoursPicker: NumberPicker
     private lateinit var minutesPicker: NumberPicker
     private lateinit var startButton: Button
     private lateinit var notificationManager: NotificationManager
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
 
-    // ... (launchers existentes) ...
     private val notificationPolicyLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { handleStartFocusClick() }
@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { handleStartFocusClick() }
 
-    // NOVO LAUNCHER para a permissão de administrador
     private val deviceAdminLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { handleStartFocusClick() }
@@ -46,41 +45,51 @@ class MainActivity : AppCompatActivity() {
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponentName = ComponentName(this, FocusDeviceAdminReceiver::class.java)
 
+        hoursPicker = findViewById(R.id.hoursPicker)
         minutesPicker = findViewById(R.id.minutesPicker)
         startButton = findViewById(R.id.startButton)
 
-        setupNumberPicker()
+        setupNumberPickers()
 
         startButton.setOnClickListener {
             handleStartFocusClick()
         }
     }
 
-    private fun setupNumberPicker() {
-        minutesPicker.minValue = 1 // Mínimo de 1 minuto para testes
-        minutesPicker.maxValue = 120
+    private fun setupNumberPickers() {
+        hoursPicker.minValue = 0
+        hoursPicker.maxValue = 5
+        hoursPicker.value = 0
+
+        minutesPicker.minValue = 0
+        minutesPicker.maxValue = 59
         minutesPicker.value = 25
     }
 
     private fun handleStartFocusClick() {
-        // Cadeia de verificação de permissões
         when {
             !notificationManager.isNotificationPolicyAccessGranted -> requestNotificationPolicyAccess()
             !Settings.canDrawOverlays(this) -> requestOverlayPermission()
-            !devicePolicyManager.isAdminActive(adminComponentName) -> requestDeviceAdminAccess() // NOVA VERIFICAÇÃO
+            !devicePolicyManager.isAdminActive(adminComponentName) -> requestDeviceAdminAccess()
             else -> startFocusService()
         }
     }
 
-    // ... (métodos de pedido de permissão existentes) ...
     private fun requestNotificationPolicyAccess() {
-        // ... (código existente) ...
-    }
-    private fun requestOverlayPermission() {
-        // ... (código existente) ...
+        Toast.makeText(this, "Por favor, ative a permissão para o Guardião do Foco.", Toast.LENGTH_LONG).show()
+        val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+        notificationPolicyLauncher.launch(intent)
     }
 
-    // NOVO MÉTODO para pedir a permissão de administrador
+    private fun requestOverlayPermission() {
+        Toast.makeText(this, "Agora, ative a permissão para sobrepor outros apps.", Toast.LENGTH_LONG).show()
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        overlayPermissionLauncher.launch(intent)
+    }
+
     private fun requestDeviceAdminAccess() {
         Toast.makeText(this, "Por fim, ative o Guardião como administrador.", Toast.LENGTH_LONG).show()
         val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
@@ -92,10 +101,15 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun startFocusService() {
-        val focusMinutes = minutesPicker.value.toLong()
+        val totalMinutes = (hoursPicker.value * 60) + minutesPicker.value
+        if (totalMinutes == 0) {
+            Toast.makeText(this, "Por favor, selecione um tempo maior que zero.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val serviceIntent = Intent(this, FocusService::class.java).apply {
             action = FocusService.ACTION_START_FOCUS
-            putExtra("FOCUS_MINUTES", focusMinutes)
+            putExtra("FOCUS_MINUTES", totalMinutes.toLong())
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -104,13 +118,10 @@ class MainActivity : AppCompatActivity() {
             startService(serviceIntent)
         }
 
-        Toast.makeText(this, "Modo Foco iniciado por $focusMinutes minutos.", Toast.LENGTH_SHORT).show()
-
-        // BLOQUEIA A TELA
+        Toast.makeText(this, "Modo Foco iniciado por $totalMinutes minutos.", Toast.LENGTH_SHORT).show()
         lockScreen()
     }
 
-    // NOVO MÉTODO para bloquear a tela
     private fun lockScreen() {
         if (devicePolicyManager.isAdminActive(adminComponentName)) {
             devicePolicyManager.lockNow()

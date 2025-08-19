@@ -4,75 +4,110 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp"
+    android:background="@color/background_dark"
+    android:padding="32dp"
     tools:context=".InterruptionActivity">
 
-    <TextView
-        android:id="@+id/questionTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="O que te tirou do foco?"
-        android:textSize="24sp"
-        android:textStyle="bold"
+    <ImageView
+        android:id="@+id/logoImageView"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/logo_meditation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.1"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
-    <RadioGroup
-        android:id="@+id/reasonRadioGroup"
-        android:layout_width="0dp"
+    <TextView
+        android:id="@+id/questionTextView"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
+        android:text="O que te tirou do foco?"
+        android:textSize="28sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/questionTextView">
+        app:layout_constraintTop_toBottomOf="@id/logoImageView" />
 
-        <RadioButton
-            android:id="@+id/radioUrgent"
+    <LinearLayout
+        android:id="@+id/reasonContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintTop_toBottomOf="@id/questionTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/backToFocusButton"
+        app:layout_constraintVertical_bias="0.2">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/reasonUrgent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Notificação urgente" />
+            android:background="@drawable/button_reason_selector"
+            app:backgroundTint="@null"
+            android:text="Notificação Urgente"
+            android:textAllCaps="false"
+            android:textColor="@color/text_light" />
 
-        <RadioButton
-            android:id="@+id/radioTime"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/reasonTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Queria ver quanto tempo falta" />
+            android:layout_marginTop="12dp"
+            android:background="@drawable/button_reason_selector"
+            app:backgroundTint="@null"
+            android:text="Queria ver quanto tempo falta"
+            android:textAllCaps="false"
+            android:textColor="@color/text_light" />
 
-        <RadioButton
-            android:id="@+id/radioCuriosity"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/reasonCuriosity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Curiosidade / Hábito" />
+            android:layout_marginTop="12dp"
+            android:background="@drawable/button_reason_selector"
+            app:backgroundTint="@null"
+            android:text="Curiosidade/Hábito"
+            android:textAllCaps="false"
+            android:textColor="@color/text_light" />
 
-        <RadioButton
-            android:id="@+id/radioBoredom"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/reasonBoredom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tédio" />
-
-    </RadioGroup>
+            android:layout_marginTop="12dp"
+            android:background="@drawable/button_reason_selector"
+            app:backgroundTint="@null"
+            android:text="Tédio"
+            android:textAllCaps="false"
+            android:textColor="@color/text_light" />
+    </LinearLayout>
 
     <Button
         android:id="@+id/backToFocusButton"
         android:layout_width="0dp"
         android:layout_height="60dp"
-        android:text="Voltar ao Foco"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/button_background_primary"
+        android:text="Retornar ao foco"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
         android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@id/exitFocusButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="16dp"/>
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/exitFocusButton"
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sair do Foco"
-        android:textColor="@android:color/holo_red_dark"
+        android:layout_marginBottom="32dp"
+        android:text="Sair de foco"
+        android:textColor="@color/text_red"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
