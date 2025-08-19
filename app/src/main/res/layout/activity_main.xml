@@ -24,7 +24,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Conecte-se com seu propósito agora!"
+        android:text="Começe a focar agora!"
         android:textAlignment="center"
         android:textSize="32sp"
         android:textStyle="bold"
@@ -37,7 +37,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Defina seu tempo de foco"
+        android:text="Defina o tempo sem distrações"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -72,7 +72,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Horas"
+                android:text="Hora(s)"
                 android:textColor="@color/text_light" />
         </LinearLayout>
 
@@ -93,7 +93,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Minutos"
+                android:text="Minuto(s)"
                 android:textColor="@color/text_light" />
         </LinearLayout>
 
@@ -120,7 +120,7 @@
         android:layout_marginBottom="16dp"
         android:drawablePadding="8dp"
         android:gravity="center"
-        android:text="Ao iniciar, vire a tela do celular para baixo"
+        android:text="Ao iniciar, vire a tela do celular para baixo para evitar notificações visuais"
         android:textAlignment="center"
         app:drawableTopCompat="@drawable/ic_screen_down"
         app:layout_constraintBottom_toBottomOf="parent"
