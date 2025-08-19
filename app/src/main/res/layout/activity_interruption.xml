@@ -13,11 +13,11 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:src="@drawable/logo_meditation"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.1"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintVertical_bias="0.05" />
 
     <TextView
         android:id="@+id/questionTextView"
@@ -36,54 +36,65 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintTop_toBottomOf="@id/questionTextView"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/backToFocusButton"
-        app:layout_constraintVertical_bias="0.2">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/questionTextView"
+        app:layout_constraintVertical_bias="0.3">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/reasonMessages"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_reason_selector"
+            android:text="Checar mensagens"
+            android:textAllCaps="false"
+            android:textColor="@color/text_light"
+            app:backgroundTint="@null" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/reasonUrgent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:background="@drawable/button_reason_selector"
-            app:backgroundTint="@null"
-            android:text="Notificação Urgente"
+            android:text="Notificação urgente"
             android:textAllCaps="false"
-            android:textColor="@color/text_light" />
+            android:textColor="@color/text_light"
+            app:backgroundTint="@null" />
 
         <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/reasonTime"
+            android:id="@+id/reasonTask"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:background="@drawable/button_reason_selector"
-            app:backgroundTint="@null"
-            android:text="Queria ver quanto tempo falta"
+            android:text="Pesquisar algo para uma tarefa"
             android:textAllCaps="false"
-            android:textColor="@color/text_light" />
+            android:textColor="@color/text_light"
+            app:backgroundTint="@null" />
 
         <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/reasonCuriosity"
+            android:id="@+id/reasonHabit"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:background="@drawable/button_reason_selector"
-            app:backgroundTint="@null"
-            android:text="Curiosidade/Hábito"
+            android:text="Hábito / Tédio"
             android:textAllCaps="false"
-            android:textColor="@color/text_light" />
+            android:textColor="@color/text_light"
+            app:backgroundTint="@null" />
 
         <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/reasonBoredom"
+            android:id="@+id/reasonNotificationCuriosity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:background="@drawable/button_reason_selector"
-            app:backgroundTint="@null"
-            android:text="Tédio"
+            android:text="Curiosidade com notificação"
             android:textAllCaps="false"
-            android:textColor="@color/text_light" />
+            android:textColor="@color/text_light"
+            app:backgroundTint="@null" />
     </LinearLayout>
 
     <Button
@@ -105,7 +116,7 @@
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="16dp"
         android:text="Sair de foco"
         android:textColor="@color/text_red"
         app:layout_constraintBottom_toBottomOf="parent"
